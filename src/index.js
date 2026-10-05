@@ -1,6 +1,22 @@
+#!/usr/bin/env node
+
 const fs = require("fs");
 
-const example = fs.readFileSync(".env.example", "utf8");
+function readEnvFile(fileName) {
+  try {
+    return fs.readFileSync(fileName, "utf8");
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      console.error(`✗ ${fileName} not found.`);
+      console.error("  Make sure you run env-check from the root of your project.");
+      process.exit(1);
+    }
+
+    throw error;
+  }
+}
+
+const example = readEnvFile(".env.example");
 
 const requiredVariables = example
   .split("\n")
@@ -8,7 +24,7 @@ const requiredVariables = example
   .filter(line => line && !line.startsWith("#"))
   .map(line => line.split("=")[0].trim());
 
-const envFile = fs.readFileSync(".env", "utf8");
+const envFile = readEnvFile(".env");
 
 const existingVariables = envFile
   .split("\n")

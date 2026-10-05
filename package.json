@@ -1,0 +1,21 @@
+{
+  "name": "env-check",
+  "version": "1.0.0",
+  "description": "A tiny CLI that checks required environment variables before you run your app.",
+  "main": "src/index.js",
+  "bin": {
+    "env-check": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "cli",
+    "env",
+    "environment",
+    "developer-tools"
+  ],
+  "author": "WaleedoLabs",
+  "license": "MIT",
+  "type": "commonjs"
+}
