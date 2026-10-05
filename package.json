@@ -1,5 +1,5 @@
 {
-  "name": "env-check",
+  "name": "waleedoo-env-check",
   "version": "1.0.0",
   "description": "A tiny CLI that checks required environment variables before you run your app.",
   "main": "src/index.js",
