@@ -543,10 +543,23 @@
   // أقرب مكان فاضي لنقطة (حتى ما تعلق الشخصية جوّا بيت أو شجرة بعد الانتقال)
   function nearestFree(px, py) {
     const P = G.player, ok = (x, y) => P.free(G.world, G.map, x, y);
-    if (ok(px, py)) return { x: px, y: py };
-    for (let r = 4; r <= 160; r += 4) for (let a = 0; a < 24; a++) {
+    // مكان فاضي + الشخصية بتقدر تطلع منه (مو جيب مسكّر بين سور وبوابة وصندوق بريد)
+    const escape = (x0, y0) => {
+      const seen = new Set([x0 + ',' + y0]), q = [[x0, y0]]; let n = 0;
+      while (q.length && n++ < 1200) {
+        const [x, y] = q.shift();
+        if (Math.hypot(x - x0, y - y0) >= 64) return true;
+        for (const [dx, dy] of [[5, 0], [-5, 0], [0, 5], [0, -5]]) {
+          const nx = x + dx, ny = y + dy, key = nx + ',' + ny;
+          if (!seen.has(key) && ok(nx, ny)) { seen.add(key); q.push([nx, ny]); }
+        }
+      }
+      return false;
+    };
+    if (ok(px, py) && escape(px, py)) return { x: px, y: py };
+    for (let r = 4; r <= 200; r += 4) for (let a = 0; a < 24; a++) {
       const x = px + Math.cos(a * Math.PI / 12) * r, y = py + Math.sin(a * Math.PI / 12) * r;
-      if (ok(x, y)) return { x, y };
+      if (ok(x, y) && escape(x, y)) return { x, y };
     }
     return { x: G.map.start.x * T, y: G.map.start.y * T };
   }
@@ -1067,6 +1080,23 @@
     cx2.textAlign = 'center'; cx2.textBaseline = 'middle'; cx2.direction = 'rtl';
     cx2.lineJoin = 'round'; cx2.strokeStyle = bg || '#2a2030'; cx2.lineWidth = size * 0.28;
     cx2.strokeText(text, x, y); cx2.fillStyle = fg || '#fff4dc'; cx2.fillText(text, x, y);
+  }
+  // أسماء الخريطة الكبيرة: ما بتركب فوق بعض (اللي بيتعارض بيتنقل أو بيتخبّى)
+  let _lbl = [];
+  function labelA(cx2, text, x, y, size, fg, bg, mode) { // mode: 'force' | 'shift' | undefined (بيتخبّى إذا تعارض)
+    cx2.font = '900 ' + Math.round(size) + 'px ' + (G._font || (G._font = getComputedStyle(document.body).fontFamily));
+    const w = cx2.measureText(text).width + size * 0.4, h = size * 1.25;
+    const hit = (yy) => _lbl.some((r) => Math.abs(r.x - x) < (r.w + w) / 2 && Math.abs(r.y - yy) < (r.h + h) / 2);
+    let yy = y;
+    if (mode !== 'force' && hit(yy)) {
+      if (mode !== 'shift') return false;
+      let ok = false;
+      for (const dy of [h, -h, h * 2, -h * 2, h * 3]) { if (!hit(y + dy)) { yy = y + dy; ok = true; break; } }
+      if (!ok) return false;
+    }
+    _lbl.push({ x, y: yy, w, h });
+    label(cx2, text, x, yy, size, fg, bg);
+    return true;
   }
   function renderGlobeTo(cx2, W, Hh, lay, rot, time, opts) {
     const open = openList();
@@ -1804,12 +1834,12 @@
     if (o.labels) (m.homes || []).forEach((h) => {
       if (!h.own) return;
       const me = h.own.me, pres = m._pres && m._pres.id === h.own.id;
-      if (h.palace) { label(x, '👑 قصر ' + h.own.name, ox + (h.p.x + 9.5) * k, oy + (h.p.y - 1.4) * k, Math.max(11 * dpr, Math.min(16 * dpr, k * 1.8)), '#ffe08a'); return; }
+      if (h.palace) { labelA(x, '👑 قصر ' + h.own.name, ox + (h.p.x + 9.5) * k, oy + (h.p.y - 1.4) * k, Math.max(11 * dpr, Math.min(16 * dpr, k * 1.8)), '#ffe08a', null, 'force'); return; }
       const named = me || pres || k >= 9;
       const p = h.p, cx = ox + (p.x + 3.5) * k, cy = oy + (p.y + 3) * k, s = Math.max(4, k * (me ? 2.6 : 1.9));
       if (h.own.cf && L.Flags && k >= 2.2) { const fw = Math.max(12 * dpr, Math.min(34 * dpr, k * 3.4)), fh = fw * 2 / 3, fs0 = Math.max(10 * dpr, Math.min(14 * dpr, k * 1.6)); L.Flags.draw(x, h.own.cf, cx - fw / 2, named ? cy - s - 9 * dpr * 0.8 - fs0 * 1.1 - fh : cy - s - fh, fw, fh); }
       if (!named) return;
-      label(x, (pres ? '👑 ' : '') + (me ? 'بيتك' : h.own.name), cx, cy - s - 9 * dpr * 0.8, Math.max(10 * dpr, Math.min(14 * dpr, k * 1.6)), me ? '#bff0c8' : pres ? '#ffe08a' : '#fff4dc');
+      labelA(x, (pres ? '👑 ' : '') + (me ? 'بيتك' : h.own.name), cx, cy - s - 9 * dpr * 0.8, Math.max(10 * dpr, Math.min(14 * dpr, k * 1.6)), me ? '#bff0c8' : pres ? '#ffe08a' : '#fff4dc', null, (me || pres) ? 'force' : undefined);
     });
     // الدبابيس
     const marks = [];
@@ -1819,7 +1849,7 @@
       const px = ox + po.x * k, py = oy + po.y * k;
       if (po.k === 'palace') { marks.push({ po, x: px, y: py, m }); return; }
       drawPin(x, px, py, ps, po.col, po.icon);
-      if (o.labels && k >= 4.5 && !(po.k === 'garden' && po.x > D.blockX(D.PARK.c) + 10)) label(x, SHORT[po.k] || po.label, px, py + ps * 0.3, Math.max(9.5 * dpr, ps * 0.34), '#fff4dc');
+      if (o.labels && k >= 4.5 && !(po.k === 'garden' && po.x > D.blockX(D.PARK.c) + 10)) labelA(x, SHORT[po.k] || po.label, px, py + ps * 0.3, Math.max(9.5 * dpr, ps * 0.34), '#fff4dc', null, 'shift');
       marks.push({ po, x: px, y: py - ps * 0.7, m });
     });
     return marks;
@@ -1870,7 +1900,7 @@
   // يرسم كل الدول الظاهرة حوالين نقطة مركز (بإحداثيات الدولة الحالية بالبكسل)
   function drawMapView(x, W, Hh, cxw, cyw, k, o) {
     x.fillStyle = '#7cb5d8'; x.fillRect(0, 0, W, Hh);
-    _ccT = performance.now(); _ccMore = false;
+    _ccT = performance.now(); _ccMore = false; _lbl = [];
     const mw = D.W, mh = D.H;
     const tx0 = cxw / T - W / 2 / k, ty0 = cyw / T - Hh / 2 / k;
     const marks = [], chunks = [];
@@ -1886,7 +1916,7 @@
       const cn = c.m._country; if (!cn) return;
       const nx = L.clamp(c.ox + mw * k / 2, 80 * dpr, W - 80 * dpr), ny = L.clamp(c.oy + 16 * dpr, 16 * dpr, Hh - 40 * dpr);
       if (c.oy + mh * k < 30 * dpr || c.oy > Hh - 30 * dpr || c.ox + mw * k < 40 || c.ox > W - 40) return;
-      const pop = (c.m.homes || []).filter((hh) => hh.own && !hh.own.elder).length; label(x, cn.name + (cn.pres ? ' · 👑 ' + cn.pres.name : ' · بلا رئيس') + ' · ' + pop + ' ساكن', nx, Math.max(ny, c.oy + 16 * dpr), 14 * dpr, '#fff4dc');
+      const pop = (c.m.homes || []).filter((hh) => hh.own && !hh.own.elder).length; label(x, cn.name + (cn.pres ? ' · 👑 ' + cn.pres.name : ' · بلا رئيس') + ' · ' + pop + ' ساكن', nx, Math.max(ny, c.oy + 16 * dpr), 14 * dpr, '#fff4dc', null, 'shift');
     });
     const toS = (wx, wy) => ({ x: (wx / T - tx0) * k, y: (wy / T - ty0) * k });
     // الهدف
@@ -1901,7 +1931,7 @@
     }
     const me = toS(G.player.x, G.player.y);
     drawMeArrow(x, me.x, me.y, (o.me || 11) * dpr, G.player.dir);
-    if (o.labels) label(x, 'إنت', me.x, me.y + 24 * dpr, 12 * dpr, '#ffb3a8');
+    if (o.labels) labelA(x, 'إنت', me.x, me.y + 24 * dpr, 12 * dpr, '#ffb3a8', null, 'shift');
     return { marks, chunks, tx0, ty0 };
   }
 
