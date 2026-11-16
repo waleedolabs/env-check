@@ -43,7 +43,7 @@
       id: String(h.id), name, lvl, plot: h.plot,
       roof: L.Houses.ROOFS[h.roof] ? h.roof : 'red', wall: (h.wall | 0) % 6,
       motto: clean(h.motto, 40), t: +h.t || Date.now(), u: +h.u || +h.t || Date.now(),
-      dlv: Math.max(0, h.dlv | 0), veh: ['bike', 'scooter', 'car'].includes(h.veh) ? h.veh : '', cname: clean(h.cname, 18), flag: col(h.flag, ''), deco: Array.isArray(h.deco) ? h.deco.filter((k) => L.Houses.DECO[k]).slice(0, 4) : [],
+      dlv: Math.max(0, h.dlv | 0), veh: ['bike', 'scooter', 'car'].includes(h.veh) ? h.veh : '', cname: clean(h.cname, 18), flag: col(h.flag, ''), cf: (L.Flags && L.Flags.has(h.cf)) ? h.cf : '', deco: Array.isArray(h.deco) ? h.deco.filter((k) => L.Houses.DECO[k]).slice(0, 4) : [],
       look: { skin: col(look.skin, '#e8b98f'), hair: col(look.hair, '#2b2233'), shirt: col(look.shirt, '#5a6b7a'), pants: col(look.pants, '#3a3f4a'), longHair: !!look.longHair, beard: look.beard ? col(look.beard, null) || undefined : undefined },
     };
   }

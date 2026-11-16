@@ -107,7 +107,7 @@
   }
   function myHouseData() {
     const s = G.s;
-    return { name: s.name, lvl: s.lvl, plot: s.plot, roof: s.roof, wall: s.wall, motto: s.motto, look: s.look, t: s.t, dlv: s.dlv, veh: bestVeh(), cname: s.cname || '', flag: s.flag || '', deco: s.deco || [] };
+    return { name: s.name, lvl: s.lvl, plot: s.plot, roof: s.roof, wall: s.wall, motto: s.motto, look: s.look, t: s.t, dlv: s.dlv, veh: bestVeh(), cname: s.cname || '', flag: s.flag || '', cf: s.cf || '', deco: s.deco || [] };
   }
   async function pushHouse() {
     if (!G.s.plot) return;
@@ -724,6 +724,7 @@
       const o = Net.ownerOf(p.id); if (o && o.id !== Net.myId) { UI.toast('حدا سبقك عهالأرض!', 'home', 'bad'); return; }
       if (!canBuildIn(p.d)) { UI.toast('هالدولة صار إلها رئيس، روح لدولتك', 'flag', 'bad'); return; }
     }
+    if (lvl === 1 && !G.s.cf) { pickFlag(() => startBuild(p, lvl)); return; }
     G.s.money -= price;
     G.build = { plot: p.id, p, t: 0, lvl, cost: price };
     G.busy = true;
@@ -758,6 +759,21 @@
     UI.card({ icon: 'flag', sub: 'سبقك حدا بثواني', title: 'حدا صار رئيس ' + countryOf(d0).name, text: 'واحد تاني بنى بهالدولة قبلك بلحظة. ولا يهمك، في إلك دولة فاضية تانية' + (fd ? ': «' + countryOf(fd).name + '». ابني فيها وبتصير رئيسها 👑' : '.'), button: fd ? 'خدني لدولتي' : 'تمام', onClose: () => { if (fd) goPlaza(fd); } });
   }
   // حدا سبقك على نفس الاسم: لازم تغيّره عشان يتحفظ بيتك
+  // اختيار علم بلد عربي لبيتك
+  function pickFlag(cb, cancelable) {
+    const F = L.Flags;
+    const box = UI.modal(UI.header('flag', 'علم بيتك') + '<p class="modal-sub">اختار علم بلدك، بيرفرف فوق بيتك قدام الكل.</p>' +
+      '<div class="flag-grid">' + F.LIST.map((f) => '<button class="flag-b' + (G.s.cf === f.c ? ' on' : '') + '" data-c="' + f.c + '"><canvas width="60" height="40"></canvas><span>' + f.n + '</span></button>').join('') + '</div>' +
+      (cancelable ? '<div class="row"><button class="btn btn-ghost" data-close>سكّر</button></div>' : ''), { cls: '', locked: !cancelable });
+    box.querySelectorAll('.flag-b').forEach((b) => {
+      const c = b.querySelector('canvas'), g = c.getContext('2d'); g.drawImage(F.canvas(b.dataset.c), 0, 0, 60, 40);
+      b.addEventListener('click', () => {
+        G.s.cf = b.dataset.c; save(); L.Audio.play('click');
+        UI._modalLocked = false; UI.closeModal();
+        if (cb) cb();
+      });
+    });
+  }
   function askNewName() {
     if (G._askName) return; G._askName = true;
     const box = UI.modal(UI.header('home', 'الاسم مأخوذ') +
@@ -798,6 +814,7 @@
     let flagPick = s.flag || '#3d7a5a';
     const box = UI.modal(UI.header('home', 'قصري 👑') +
       '<div class="palace-hero"><span id="ph-c"></span><b>قصر ' + esc(s.name) + '</b><small>صاحب الحارة · رئيس الدولة 1 للأبد</small></div>' +
+'<button class="btn btn-ghost" id="hh-flag" style="margin-bottom:8px">🏳️ علم بيتي</button>' +
       (rentDue() > 0 ? '<button class="btn btn-big" id="hh-rent" style="margin-bottom:8px">اجمع إيجار القصر · ' + rentDue() + '$</button>' : '<p class="sync-note">إيجار القصر: ' + (s.lvl * RENT_PER_HOUR) + '$ بالساعة، بيتجمّع لحد ' + RENT_CAP_H + ' ساعات.</p>') +
       '<div class="pres-box"><b>👑 مملكتك</b><div class="field"><label for="hh-cn">اسم الدولة</label><input id="hh-cn" maxlength="18" value="' + esc(s.cname || '') + '" placeholder="مثلاً: مملكة الحارة"></div>' +
       '<div class="field"><label>لون العلم (بيرفرف فوق القصر)</label><div class="roof-pick">' + FLAGS.map((f) => '<button data-f="' + f + '" class="' + (f === flagPick ? 'on' : '') + '" style="background:' + f + ';clip-path:none"></button>').join('') + '</div></div></div>' +
@@ -809,6 +826,7 @@
       const h = box.querySelector('#ph-c'); h.innerHTML = ''; h.appendChild(c);
     };
     draw();
+    const fb = box.querySelector('#hh-flag'); if (fb) fb.addEventListener('click', () => { UI.closeModal(); pickFlag(() => { pushHouse(); rebuildAll(); }, true); });
     const rb = box.querySelector('#hh-rent'); if (rb) rb.addEventListener('click', () => { UI.closeModal(); ACTIONS.rent(); });
     box.querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { flagPick = b.dataset.f; box.querySelectorAll('[data-f]').forEach((x) => x.classList.toggle('on', x === b)); draw(); }));
     box.querySelector('#hh-save').addEventListener('click', () => {
@@ -831,6 +849,7 @@
     const box = UI.modal(UI.header('home', 'بيتي · ورشة البناء') +
       '<div class="house-hero"><span id="hh-c"></span><div><b>' + esc(s.name) + '</b><span>' + esc(D.LEVEL_NAMES[s.lvl]) + ' · مستوى ' + s.lvl + ' من 10</span>' +
       '<div class="lvl-track">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((l) => '<i class="' + (l <= s.lvl ? 'on' : '') + '"></i>').join('') + '</div></div></div>' +
+'<button class="btn btn-ghost" id="hh-flag" style="margin-bottom:8px">🏳️ علم بيتي</button>' +
       (rentDue() > 0 ? '<button class="btn btn-big" id="hh-rent" style="margin-bottom:8px">اجمع الإيجار · ' + rentDue() + '$</button>' : '<p class="sync-note">الإيجار: ' + (s.lvl * RENT_PER_HOUR) + '$ بالساعة، بيتجمّع لحد ' + RENT_CAP_H + ' ساعات.</p>') +
       (next <= D.MAX_LVL ? '<p class="sync-note">بيتك بيكبر لحاله ببلاش لما يصير معك ' + GROW_AT[next] + '$ (معك ' + s.money + '$) ← ' + esc(D.LEVEL_NAMES[next]) + '</p>' : '<p class="modal-sub">بيتك ناطحة سحاب! ما في أعلى من هيك 🏙️</p>') +
       '<div class="build-next">' + (next <= D.MAX_LVL ? '<span>الجاي:</span><span id="hh-next"></span><b>' + esc(D.LEVEL_NAMES[next]) + '</b><div class="bar"><i style="width:' + Math.min(100, Math.round(s.money / GROW_AT[next] * 100)) + '%"></i></div>' : '') + '</div>' +
@@ -847,6 +866,7 @@
     if (next <= D.MAX_LVL) box.querySelector('#hh-next').appendChild(houseCanvas(next, s.roof, s.wall));
     box.querySelectorAll('[data-w]').forEach((b) => b.addEventListener('click', () => { s.wall = +b.dataset.w; box.querySelectorAll('[data-w]').forEach((x) => x.classList.toggle('on', x === b)); redraw(); }));
     box.querySelectorAll('[data-s]').forEach((sel) => sel.addEventListener('change', () => { deco[+sel.dataset.s] = sel.value; }));
+    const fb = box.querySelector('#hh-flag'); if (fb) fb.addEventListener('click', () => { UI.closeModal(); pickFlag(() => { pushHouse(); rebuildAll(); }, true); });
     const rb = box.querySelector('#hh-rent'); if (rb) rb.addEventListener('click', () => { UI.closeModal(); ACTIONS.rent(); });
     box.querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { flagPick = b.dataset.f; box.querySelectorAll('[data-f]').forEach((x) => x.classList.toggle('on', x === b)); }));
     box.querySelectorAll('[data-r]').forEach((b) => b.addEventListener('click', () => {
@@ -1655,6 +1675,8 @@
       ctx.fillStyle = o.lvl >= 5 ? '#f2c14e' : o.lvl >= 3 ? '#5aa07a' : '#9fb4c8'; ctx.beginPath(); ctx.arc(bx, by, badge / 2 - bw * 0.2, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#2a2030'; ctx.textAlign = 'center'; ctx.font = '900 ' + Math.round(fs * 0.9) + 'px "Courier New", monospace';
       ctx.fillText(String(o.lvl), bx, by + 1);
+      // علم البلد فوق البيت
+      if (o.cf && L.Flags && L.Flags.has(o.cf)) { const fw = Math.round(fs * 2.1), fh = Math.round(fw * 2 / 3); L.Flags.draw(ctx, o.cf, Math.round(sx - fw / 2), y - fh - bw * 3, fw, fh); }
       // ذيل صغير
       ctx.fillStyle = '#2a2030'; ctx.beginPath(); ctx.moveTo(sx - bw * 3, y + hgt + bw); ctx.lineTo(sx + bw * 3, y + hgt + bw); ctx.lineTo(sx, y + hgt + bw * 5); ctx.fill();
     }

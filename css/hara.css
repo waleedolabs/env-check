@@ -238,3 +238,7 @@ body.touch #dialog { bottom: calc(150px + var(--safe-b)); }
 .palace-hero canvas { width: 100%; max-width: 312px; image-rendering: pixelated; }
 .palace-hero b { font-size: 18px; }
 .palace-hero small { font-size: 12px; font-weight: 800; color: #8a6a1f; }
+.flag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; max-height: 52vh; overflow: auto; padding: 4px; margin-bottom: 8px; }
+.flag-b { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; background: #fff4dc; border: 3px solid var(--ink); cursor: pointer; font: inherit; font-weight: 800; font-size: 13px; color: var(--ink); }
+.flag-b canvas { width: 60px; height: 40px; image-rendering: auto; border: 1px solid var(--ink); }
+.flag-b.on, .flag-b:active { background: #f2c14e; outline: 3px solid var(--ink); }
