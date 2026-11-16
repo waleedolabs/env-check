@@ -264,7 +264,7 @@
       const f = $('fade');
       f.classList.add('on');
       UI.fading = true;
-      return new Promise((res) => setTimeout(() => { mid && mid(); setTimeout(() => { f.classList.remove('on'); UI.fading = false; res(); }, 80); }, 260));
+      return new Promise((res) => setTimeout(() => { try { mid && mid(); } catch (e) { console.error(e); } setTimeout(() => { f.classList.remove('on'); UI.fading = false; res(); }, 80); }, 260));
     },
   };
 

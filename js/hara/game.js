@@ -554,10 +554,16 @@
     if (G.busy) return;
     G.busy = true; L.Input.clear(); UI.prompt(null);
     UI.fade(() => {
-      if (!G.map || G.map.id !== 'd' + d) loadDistrict(d);
-      const fp = nearestFree(tx * T, ty * T);
-      G.player.x = fp.x; G.player.y = fp.y; G.player.dir = dir || 3;
-      snapCamera();
+      try {
+        if (!G.map || G.map.id !== 'd' + d) loadDistrict(d);
+        const fp = nearestFree(tx * T, ty * T);
+        G.player.x = fp.x; G.player.y = fp.y; G.player.dir = dir || 3;
+        snapCamera();
+      } catch (e) {
+        console.error(e);
+        try { if (!G.map || G.map.id !== 'd' + d) loadDistrict(d); G.player.x = G.map.start.x * T; G.player.y = G.map.start.y * T; snapCamera(); } catch (e2) { console.error(e2); }
+      }
+      G.camOff = { x: 0, y: 0 };
     }).then(() => { G.busy = false; stamp(G.map.d); const c = countryOf(G.map.d); UI.banner(c.name + (c.pres ? ' · 👑 ' + c.pres.name : ' · بلا رئيس'), 'flag'); save(); });
   }
   function goToPlot(id) { const { d, plot } = plotById(id); goTo(d, plot.x + 3.5, plot.y + 6.6, 3); }
@@ -1869,6 +1875,7 @@
     const tx0 = cxw / T - W / 2 / k, ty0 = cyw / T - Hh / 2 / k;
     const marks = [], chunks = [];
     for (let dy = Math.floor(ty0 / mh); dy <= Math.floor((ty0 + Hh / k) / mh); dy++) for (let dx = Math.floor(tx0 / mw); dx <= Math.floor((tx0 + W / k) / mw); dx++) {
+      if (o.noWrap && (G.map.cell.gx + dx < 0 || G.map.cell.gx + dx >= L.Planet.GW)) continue; // الخريطة الكبيرة ما بتتكرر
       const m = mapChunk(dx, dy); if (!m) continue;
       const ox = (dx * mw - tx0) * k, oy = (dy * mh - ty0) * k;
       marks.push(...drawMapCountry(x, m, ox, oy, k, o));
@@ -1947,13 +1954,18 @@
   }
   function closeBigMap() { $('bigmap').classList.add('hidden'); G.big = null; miniSize(true); }
   let _bmRaf = 0;
+  function clampBig(g) { // حدود العالم: ما بتنسحب الخريطة لبرّا ولا بتتكرر
+    const cg = G.map.cell, GW = L.Planet.GW, GH = L.Planet.GH;
+    g.cx = L.clamp(g.cx, -cg.gx * MW(), (GW - cg.gx) * MW());
+    g.cy = L.clamp(g.cy, -cg.gy * MH(), (GH - cg.gy) * MH());
+  }
   function drawBigMap() { if (_bmRaf) return; _bmRaf = requestAnimationFrame(() => { _bmRaf = 0; drawBigMapNow(); }); }
   function drawBigMapNow() {
     const g = G.big; if (!g) return;
     const c = $('bm-cv'), W = Math.floor(c.clientWidth * dpr), Hh = Math.floor(c.clientHeight * dpr);
     if (c.width !== W || c.height !== Hh) { c.width = W; c.height = Hh; }
     const x = c.getContext('2d');
-    const r = drawMapView(x, W, Hh, g.cx, g.cy, g.k, { labels: true, me: 13 });
+    const r = drawMapView(x, W, Hh, g.cx, g.cy, g.k, { labels: true, me: 13, noWrap: true });
     if (_ccMore) drawBigMap(); // كمّل الدول اللي ما لحقت تنرسم
     g.marks = r.marks; g.chunks = r.chunks; g.tx0 = r.tx0; g.ty0 = r.ty0;
     if (g.sel) { const sx = (g.sel.x / T - g.tx0) * g.k, sy = (g.sel.y / T - g.ty0) * g.k; x.strokeStyle = '#fff4dc'; x.lineWidth = 4 * dpr; x.beginPath(); x.arc(sx, sy, 18 * dpr, 0, Math.PI * 2); x.stroke(); x.strokeStyle = '#2a2030'; x.lineWidth = 2 * dpr; x.beginPath(); x.arc(sx, sy, 21 * dpr, 0, Math.PI * 2); x.stroke(); }
@@ -1963,7 +1975,8 @@
     let best = null, bd = 30 * dpr;
     (g.marks || []).forEach((mk) => { const d2 = Math.hypot(mk.x - mx, mk.y - my); if (d2 < bd) { bd = d2; best = mk; } });
     const tx = mx / g.k + g.tx0, ty = my / g.k + g.ty0; // بلاطات بالنسبة للدولة الحالية
-    const dx = Math.floor(tx / D.W), dy = Math.floor(ty / D.H), m = mapChunk(dx, dy);
+    const dx = Math.floor(tx / D.W), dy = Math.floor(ty / D.H);
+    const m = (G.map.cell.gx + dx < 0 || G.map.cell.gx + dx >= L.Planet.GW) ? null : mapChunk(dx, dy);
     const toLocal = (mm) => { const dl = L.Planet.delta(G.map.d, mm.d); return { dx: dl.dx, dy: dl.dy }; };
     if (best) {
       const dl = toLocal(best.m);
@@ -1990,7 +2003,7 @@
       const g = G.big, p = pts.get(e.pointerId); if (!g || !p) return;
       const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
       if (pts.size === 2 && pinch) { const [a, b] = [...pts.values()]; g.k = L.clamp(pinch.k * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d, g.minK, g.maxK); }
-      else { g.cx -= dx * dpr / g.k * T; g.cy -= dy * dpr / g.k * T; }
+      else { g.cx -= dx * dpr / g.k * T; g.cy -= dy * dpr / g.k * T; clampBig(g); }
       drawBigMap();
     });
     const up = (e) => {
@@ -2002,7 +2015,7 @@
     c.addEventListener('wheel', (e) => { const g = G.big; if (!g) return; e.preventDefault(); g.k = L.clamp(g.k * (e.deltaY > 0 ? 0.88 : 1.14), g.minK, g.maxK); drawBigMap(); }, { passive: false });
     $('bm-plus').addEventListener('click', () => { const g = G.big; g.k = Math.min(g.maxK, g.k * 1.4); drawBigMap(); });
     $('bm-minus').addEventListener('click', () => { const g = G.big; g.k = Math.max(g.minK, g.k / 1.4); drawBigMap(); });
-    $('bm-me').addEventListener('click', () => { const g = G.big; g.cx = G.player.x; g.cy = G.player.y; g.k = Math.max(g.k, (g.minK * 3) * 2); drawBigMap(); });
+    $('bm-me').addEventListener('click', () => { const g = G.big; g.cx = G.player.x; g.cy = G.player.y; g.k = Math.max(g.k, (g.minK * 3) * 2); clampBig(g); drawBigMap(); });
     $('bm-nav').addEventListener('click', () => { const s2 = G.big.sel; G.way = { d: s2.d, x: s2.lx, y: s2.ly, label: s2.label }; closeBigMap(); UI.toast('اتبع السهم الأصفر 🧭', 'flag'); });
     $('bm-tp').addEventListener('click', () => { const s2 = G.big.sel; closeBigMap(); goTo(s2.d, s2.lx / T, s2.ly / T, 0); });
   }
