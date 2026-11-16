@@ -135,7 +135,7 @@
   }
   // ---------- توزيع الرؤساء ----------
   // طالما في دول بلا رئيس: كل واحد جديد بياخد دولة لحاله. الدولة 1 للقصر.
-  const OPEN = 20; // عدد الدول المفتوحة هلأ (الدولة 1 للقصر)
+  const OPEN = L.Planet.count; // كل دول الكوكب (20)؛ الدولة 1 للقصر
   let _freeVer = -1, _free = 0;
   function countryFree(d) { if (d === 1) return false; const f = Net.firstIn(d); return !f || f.id === Net.myId; }
   function firstFreeCountry() {

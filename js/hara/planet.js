@@ -91,7 +91,7 @@
 
   // ---------- شبكة الدول ----------
   // الكوكب مقسوم مربعات 6°×6° (متل خطوط الطول والعرض). كل مربع = دولة، وجيرانها عالكوكب هم جيرانها باللعبة
-  const CELL = 6, GW = 360 / CELL, LAT_TOP = 63, GH = (LAT_TOP * 2) / CELL; // 60 × 21 = 1260 دولة
+  const GW = 5, GH = 4, LAT_TOP = 64, KW = 360 / GW, KH = (LAT_TOP * 2) / GH; // 5 × 4 = 20 دولة، كل وحدة كبيرة (72° × 32°)
   const DEG = Math.PI / 180;
   const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
   const xyz = (lat, lon) => ({ x: Math.cos(lat * DEG) * Math.sin(lon * DEG), y: Math.sin(lat * DEG), z: Math.cos(lat * DEG) * Math.cos(lon * DEG) });
@@ -99,12 +99,12 @@
   const cells = [];
   for (let gy = 0; gy < GH; gy++) for (let gx = 0; gx < GW; gx++) {
     const c = { gx, gy };
-    c.lat = LAT_TOP - (gy + 0.5) * CELL; c.lon = -180 + (gx + 0.5) * CELL;
+    c.lat = LAT_TOP - (gy + 0.5) * KH; c.lon = -180 + (gx + 0.5) * KW;
     c.p = xyz(c.lat, c.lon);
     // بيئة الدولة: الأكثر بين نقاطها؛ إذا أغلبها بحر بتصير جزيرة
     const cnt = {}; let land = 0;
     for (let a = 0; a < 5; a++) for (let b2 = 0; b2 < 5; b2++) {
-      const q = xyz(c.lat + (a - 2) * 1.1, c.lon + (b2 - 2) * 1.1), bb = biomeAt(q.x, q.y, q.z);
+      const q = xyz(c.lat + (a - 2) * KH / 5, c.lon + (b2 - 2) * KW / 5), bb = biomeAt(q.x, q.y, q.z);
       if (bb !== 'ocean') { land++; cnt[bb] = (cnt[bb] || 0) + 1; }
     }
     c.land = land / 25;
@@ -142,12 +142,12 @@
     return { dx, dy: b.gy - a.gy };
   }
   // نقطة على الكوكب لمكان داخل الدولة (fx, fy من 0 لـ 1)
-  function pointIn(d, fx, fy) { const c = cell(d); return xyz(LAT_TOP - (c.gy + fy) * CELL, -180 + (c.gx + fx) * CELL); }
+  function pointIn(d, fx, fy) { const c = cell(d); return xyz(LAT_TOP - (c.gy + fy) * KH, -180 + (c.gx + fx) * KW); }
   // من نقطة على الكرة للدولة
   function dOfPoint(p) {
     const lat = Math.asin(Math.max(-1, Math.min(1, p.y))) / DEG, lon = Math.atan2(p.x, p.z) / DEG;
-    const gy = Math.floor((LAT_TOP - lat) / CELL), gx = Math.floor((lon + 180) / CELL);
-    return { d: dAt(gx, gy), fx: (lon + 180) / CELL - gx, fy: (LAT_TOP - lat) / CELL - gy };
+    const gy = Math.floor((LAT_TOP - lat) / KH), gx = Math.floor((lon + 180) / KW);
+    return { d: dAt(gx, gy), fx: (lon + 180) / KW - gx, fy: (LAT_TOP - lat) / KH - gy };
   }
 
   // ---------- تلوين الدول المفتوحة وحدودها ----------
@@ -161,10 +161,10 @@
     cols = list.map((c) => hexRgb(c.color));
     list.forEach((c, n) => {
       const cc = cell(c.d);
-      const i0 = cc.gx * CELL, j0 = (90 - LAT_TOP) + cc.gy * CELL; // تكسل 1° = خلية 6×6
-      for (let j = j0; j < j0 + CELL; j++) for (let i = i0; i < i0 + CELL; i++) {
+      const i0 = cc.gx * KW, j0 = (90 - LAT_TOP) + cc.gy * KH; // تكسل 1° = خلية 6×6
+      for (let j = j0; j < j0 + KH; j++) for (let i = i0; i < i0 + KW; i++) {
         const k = j * TW + i; own[k] = n;
-        if (i === i0 || j === j0 || i === i0 + CELL - 1 || j === j0 + CELL - 1) border[k] = 1;
+        if (i === i0 || j === j0 || i === i0 + KW - 1 || j === j0 + KH - 1) border[k] = 1;
       }
     });
   }
@@ -231,8 +231,8 @@
             // خط الحدود رفيع: بس عطرف التكسل
             const fu = ((lon + Math.PI) / (Math.PI * 2) * TW) % 1, fv = ((0.5 - lat / Math.PI) * TH) % 1;
             const th = Math.max(0.06, Math.min(0.35, 2.2 * TW / (radius * Math.PI * 2)));
-            const edgeL = (ti % CELL === 0 && fu < th) || (ti % CELL === CELL - 1 && fu > 1 - th);
-            const edgeT = ((tj - (90 - LAT_TOP)) % CELL === 0 && fv < th) || ((tj - (90 - LAT_TOP)) % CELL === CELL - 1 && fv > 1 - th);
+            const edgeL = (ti % KW === 0 && fu < th) || (ti % KW === KW - 1 && fu > 1 - th);
+            const edgeT = ((tj - (90 - LAT_TOP)) % KH === 0 && fv < th) || ((tj - (90 - LAT_TOP)) % KH === KH - 1 && fv > 1 - th);
             if (edgeL || edgeT) { r = 255; g = 244; b = 220; }
             else { r += (cc[0] - r) * 0.4; g += (cc[1] - g) * 0.4; b += (cc[2] - b) * 0.4; }
           } else { r += (cc[0] - r) * 0.4; g += (cc[1] - g) * 0.4; b += (cc[2] - b) * 0.4; }

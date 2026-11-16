@@ -4,7 +4,7 @@
   const T = L.TILE;
 
   // أبعاد ثابتة: 4 بلوكات أفقية × 6 صفوف، كل بلوك 3 أراضي (7×6 بلاطات)
-  const COLS = 4, ROWS = 6, PER = 3, PW = 7, PH = 6;
+  const COLS = 4, ROWS = 12, PER = 3, PW = 7, PH = 6;
   const W = 1 + COLS * 25 + 1, H = 4 + ROWS * 10 + 2;
   const PLAZA = { c: 1, r: 2 }; // البلوك اللي فيه الساحة
   const PARK = { c: 2, r: 3 };  // البلوك اللي فيه الحديقة والبحيرة
@@ -50,7 +50,7 @@
   // مكان القصر بالبلاطات
   function palaceSpot() { return L.Palace ? { x: blockX(L.Palace.BLOCK.c) + 1, y: rowY(L.Palace.BLOCK.r) + 1 } : null; }
   function palacePoi() { const q = palaceSpot(); return { k: 'palace', x: q.x + 10.5, y: q.y + 1.2, label: 'القصر 👑', icon: 'home', col: '#f2c14e', go: { x: q.x + 10.5, y: q.y + 5.4 } }; }
-  const PLOTS_ALL = (COLS * ROWS - 2) * PER; // 66 أرض بكل حي
+  const PLOTS_ALL = (COLS * ROWS - 2) * PER; // 138 أرض بكل دولة
   const plotsFree = (d) => PLOTS_ALL - (d === 1 ? ELDERS.length + (L.Palace ? PER : 0) : 0);
 
   function build(d) {
