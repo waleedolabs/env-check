@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1d1924">
+  <meta name="description" content="حارتنا — اختار أرض، ابني بيتك، واكتب اسمك عليه. كل الحارة رح تشوفه.">
+  <meta property="og:title" content="حارتنا — ابني بيتك باسمك">
+  <meta property="og:description" content="حارة Pixel Art بيبنيها المتابعين: كل واحد إله أرض وبيت واسم ومستوى.">
+  <title>حارتنا | HARA</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/hara.css">
+  <script>
+    // لما ترفع السيرفر على Cloudflare حط رابطه هون، مثال:
+    // window.HARA_API = 'https://hara-api.YOURNAME.workers.dev';
+    window.HARA_API = 'https://hara-api.waleedarnaout2000.workers.dev';
+  </script>
+</head>
+<body>
+  <div id="game">
+    <canvas id="screen" aria-label="عالم اللعبة"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="hud-row">
+        <div class="hud-card hud-player">
+          <canvas id="hud-avatar" width="16" height="22"></canvas>
+          <div class="hud-text"><small id="hud-lvl">بلا بيت</small><strong id="hud-name">—</strong></div>
+        </div>
+        <div class="hud-card hud-money">
+          <img id="hud-coin" alt="">
+          <strong id="hud-money" class="num">0</strong>
+        </div>
+        <div class="hud-card hud-people" title="بيوت الحارة">
+          <img id="hud-people" alt="">
+          <div class="hud-text"><small>بيوت</small><strong id="hud-count" class="num">0</strong></div>
+        </div>
+        <div class="hud-card hud-clock">
+          <img id="hud-home" alt="">
+          <strong id="hud-time" class="num">--:--</strong>
+        </div>
+        <div class="hud-buttons">
+          <button id="btn-ride" class="icon-btn hidden" title="اركب"><img alt="مركبة" class="pix"></button>
+          <button id="btn-globe" class="icon-btn" title="الكوكب"><img alt="الكوكب" id="globe-ic" class="pix"></button>
+          <button id="btn-book" class="icon-btn" title="سكان الحارة (I)"><img alt="السكان"></button>
+          <button id="btn-menu" class="icon-btn" title="القائمة (Esc)"><img alt="القائمة"></button>
+        </div>
+      </div>
+      <div class="hud-row hud-row2">
+        <div id="goal" class="hud-card">
+          <div class="goal-head"><img alt=""><strong id="goal-title"></strong><button id="goal-toggle" aria-label="إخفاء/إظهار">▾</button></div>
+          <ul id="goal-steps"></ul>
+        </div>
+      </div>
+      <div id="delivery-chip" class="hidden"><img alt=""><span></span></div>
+    </div>
+    <div id="mini" class="hidden small">
+      <canvas id="minimap" width="204" height="132" aria-label="خريطة الحي"></canvas>
+      <div class="mini-row"><span id="mini-name"></span><button id="mini-big" title="الخريطة الكبيرة">🗺</button><button id="mini-all" title="صغّر الكاميرا">⤢</button><button id="mini-me" title="رجوع لعندي">◎</button></div>
+    </div>
+
+    <div id="banner"><img alt=""><span></span></div>
+    <div id="prompt"><kbd class="key-hint">E</kbd><span></span></div>
+
+    <div id="dialog" class="px hidden">
+      <div id="dialog-name"></div>
+      <p id="dialog-text"></p>
+      <div id="dialog-choices"></div>
+      <div id="dialog-next">▼</div>
+    </div>
+
+    <div id="modal" class="modal hidden"><div class="px modal-box" id="modal-box"></div></div>
+    <div id="work" class="hidden"></div>
+
+    <div id="card" class="hidden">
+      <div class="card-inner">
+        <img id="card-icon" alt="">
+        <small id="card-sub"></small>
+        <h2 id="card-title"></h2>
+        <div id="card-body"></div>
+        <div class="card-actions">
+          <button class="btn btn-big" id="card-btn">متابعة</button>
+          <button class="btn btn-ghost hidden" id="card-skip">تخطّي</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="title">
+      <div class="title-inner">
+        <h1 class="logo"><span class="logo-en">HARA</span><span class="logo-ar">حارتنا</span></h1>
+        <p class="tagline">كوكب كامل بيبنيه المتابعين.<br>اختار أرضك، ابني بيتك، واكتب اسمك عليه.</p>
+        <div class="px title-panel">
+          <div id="title-continue" class="hidden">
+            <button class="btn btn-big" id="btn-continue">ارجع لبيتك</button>
+            <p class="save-info" id="save-info"></p>
+            <button class="btn btn-ghost btn-small" id="btn-new-toggle">شخصية جديدة</button>
+          </div>
+          <div id="new-block">
+            <div class="creator">
+              <canvas id="preview" width="16" height="22"></canvas>
+              <div class="swatches">
+                <div class="sw-row"><small>البشرة</small><div class="sw" data-k="skin"></div></div>
+                <div class="sw-row"><small>الشعر</small><div class="sw" data-k="hair"></div></div>
+                <div class="sw-row"><small>التيشيرت</small><div class="sw" data-k="shirt"></div></div>
+                <div class="sw-row"><small>التسريحة</small><div class="sw" data-k="style"></div></div>
+              </div>
+            </div>
+            <label for="name-input">شو اسمك؟ (رح ينكتب على بيتك)</label>
+            <input id="name-input" type="text" maxlength="24" placeholder="اكتب اسمك..." autocomplete="off">
+            <button class="btn btn-big" id="btn-start">ادخل وابني بيتك</button>
+          </div>
+          <p class="controls-hint desktop-only">الحركة: WASD أو الأسهم · التفاعل: E أو المسافة</p>
+        </div>
+        <p class="world-status" id="world-status">عم نجيب بيوت الحارة...</p>
+      </div>
+    </div>
+
+    <div id="touch" class="hidden">
+      <div id="joy-zone"><div id="joy"><div class="joy-ring"></div><div id="joy-knob"></div></div></div>
+      <div id="act-cluster">
+        <button id="btn-ride2" class="mini-act hidden" aria-label="اركب"><img alt="" class="pix"></button>
+        <button id="btn-a" aria-label="تفاعل"><img id="btn-a-ic" alt="" class="pix"><span id="btn-a-label">A</span></button>
+      </div>
+    </div>
+
+    <div id="planet" class="hidden">
+      <canvas id="planet-cv" aria-label="الكوكب"></canvas>
+      <div class="pl-top"><span id="pl-count" class="pl-chip"></span><button id="pl-close" class="close" aria-label="إغلاق">✕</button></div>
+      <div class="pl-hint">اسحب لتدوّر الكوكب · قرّص لتكبّر · اضغط على دولة</div>
+      <div class="px pl-panel">
+        <b id="pl-title"></b>
+        <span id="pl-pres" class="pl-pres"></span>
+        <span id="pl-sub"></span>
+        <button class="btn btn-big" id="pl-go">سافر لهون</button>
+      </div>
+    </div>
+
+    <div id="bigmap" class="hidden">
+      <canvas id="bm-cv" aria-label="الخريطة الكبيرة"></canvas>
+      <div class="pl-top"><span class="pl-chip">الخريطة · اسحب وكبّر، واضغط على أي مكان</span><button id="bm-close" class="close" aria-label="إغلاق">✕</button></div>
+      <div class="bm-tools"><button id="bm-plus" aria-label="كبّر">+</button><button id="bm-minus" aria-label="صغّر">−</button><button id="bm-me" aria-label="مكاني">◎</button></div>
+      <div id="bm-panel" class="px pl-panel hidden">
+        <b id="bm-title"></b>
+        <div class="row"><button class="btn" id="bm-nav">دلّني بالسهم 🧭</button><button class="btn btn-ghost" id="bm-tp">انتقل فوراً</button></div>
+      </div>
+    </div>
+
+    <div id="rotate" class="hidden">
+      <div class="rot-box px">
+        <div class="rot-phone"></div>
+        <b>لف تلفونك بالعرض</b>
+        <span>اللعبة أحلى بالعرض، والخريطة بتبين أكبر</span>
+        <button class="btn btn-ghost" id="rot-skip">كمّل بالطول</button>
+      </div>
+    </div>
+
+    <div id="toasts"></div>
+    <div id="fade"></div>
+  </div>
+
+  <script src="js/core/utils.js"></script>
+  <script>window.LIFE.SAVE_KEY = 'hara_save_v1';</script>
+  <script src="js/gfx/tiles.js"></script>
+  <script src="js/gfx/objects.js"></script>
+  <script src="js/gfx/hay.js"></script>
+  <script src="js/gfx/characters.js"></script>
+  <script src="js/gfx/icons.js"></script>
+  <script src="js/hara/planet.js"></script>
+  <script src="js/hara/nature.js"></script>
+  <script src="js/hara/district.js"></script>
+  <script src="js/world/world.js"></script>
+  <script src="js/entities/actors.js"></script>
+  <script src="js/systems/input.js"></script>
+  <script src="js/systems/lighting.js"></script>
+  <script src="js/systems/save.js"></script>
+  <script src="js/systems/audio.js"></script>
+  <script src="js/hara/houses.js"></script>
+  <script src="js/hara/palace.js"></script>
+  <script src="js/hara/net.js"></script>
+  <script src="js/ui/ui.js"></script>
+  <script src="js/hara/game.js"></script>
+</body>
+</html>
