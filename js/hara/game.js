@@ -794,6 +794,14 @@
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
     setTimeout(() => inp.focus(), 50);
   }
+  // عداد عالشاشة الأولى: كم بيت صار وكم رئيس
+  function titleCount() {
+    const el = $('title-count'); if (!el) return;
+    const n = Net.houses.size; if (!n) return;
+    const pres = new Set(); Net.houses.forEach((h) => { pres.add(+String(h.plot).split('-')[0].slice(1)); });
+    $('tc-houses').textContent = n; $('tc-pres').textContent = pres.size;
+    el.classList.remove('hidden');
+  }
   function lostPlot() {
     if (!G.s.plot) return;
     G.s.plot = null; G.s.lvl = 0; G.s.t = 0;
@@ -2153,7 +2161,7 @@
     $('btn-new-toggle').addEventListener('click', () => { $('new-block').classList.remove('hidden'); $('btn-new-toggle').classList.add('hidden'); });
     try { const fl = document.createElement('link'); fl.rel = 'icon'; fl.href = L.Icons.get('home'); document.head.appendChild(fl); } catch (e) { /* */ }
     Net.onChange(() => {
-      G.dirty = true; setStatus();
+      G.dirty = true; setStatus(); titleCount();
       if (G.s && G.s.plot && G.s.lvl && !G.build) { const o = Net.ownerOf(G.s.plot); if (o && o.id !== Net.myId) lostPlot(); }
     });
     loadDistrict(1);
@@ -2163,7 +2171,7 @@
     window.addEventListener('pagehide', () => save());
     requestAnimationFrame(frame);
     await Net.init();
-    G.dirty = true; setStatus();
+    G.dirty = true; setStatus(); titleCount();
   }
 
   window.__hara = { askNewName, G, Net, firstFreeCountry, canBuildIn, presRace, useOwnerCode, palaceOwner, presidentOf, openBigMap, drawBigMapNow, liteOf, rebuildM: (m) => rebuild(m), goToPlot, openGlobe, openVehicles, openJobs, setRide, ACTIONS, startBuild, plotById, openResidents, openMyHouse, rebuild: () => rebuild(), give: (m) => { G.s.money += m; } };

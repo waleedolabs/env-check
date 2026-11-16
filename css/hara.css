@@ -242,3 +242,6 @@ body.touch #dialog { bottom: calc(150px + var(--safe-b)); }
 .flag-b { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; background: #fff4dc; border: 3px solid var(--ink); cursor: pointer; font: inherit; font-weight: 800; font-size: 13px; color: var(--ink); }
 .flag-b canvas { width: 60px; height: 40px; image-rendering: auto; border: 1px solid var(--ink); }
 .flag-b.on, .flag-b:active { background: #f2c14e; outline: 3px solid var(--ink); }
+.title-count { display: flex; justify-content: center; gap: 10px; margin: 0 0 14px; }
+.title-count span { background: #fff4dc; color: var(--ink); border: 3px solid var(--ink); padding: 6px 12px; font-weight: 900; font-size: 15px; }
+.title-count b { color: #3d7a5a; font-size: 18px; }
