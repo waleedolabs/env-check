@@ -135,17 +135,18 @@
   }
   // ---------- توزيع الرؤساء ----------
   // طالما في دول بلا رئيس: كل واحد جديد بياخد دولة لحاله. الدولة 1 للقصر.
+  const OPEN = 20; // عدد الدول المفتوحة هلأ (الدولة 1 للقصر)
   let _freeVer = -1, _free = 0;
   function countryFree(d) { if (d === 1) return false; const f = Net.firstIn(d); return !f || f.id === Net.myId; }
   function firstFreeCountry() {
     const v = Net.ver + ':' + (G.s && G.s.plot);
     if (v === _freeVer) return _free;
     _freeVer = v; _free = 0;
-    for (let d = 2; d <= L.Planet.count; d++) if (countryFree(d)) { _free = d; break; }
+    for (let d = 2; d <= OPEN; d++) if (countryFree(d)) { _free = d; break; }
     return _free;
   }
   const presRace = () => firstFreeCountry() > 0;
-  function canBuildIn(d) { return !presRace() ? d !== 1 || !!(G.s && G.s.owner) : countryFree(d); }
+  function canBuildIn(d) { if (d > OPEN) return false; return !presRace() ? d !== 1 || !!(G.s && G.s.owner) : countryFree(d); }
   function goMyCountry() { const d = firstFreeCountry(); if (d) goPlaza(d); }
 
   // ---------- القصر ----------
@@ -577,7 +578,7 @@
     for (const h of G.map.homes) {
       if (h.own || h.building) continue;
       const r = { x: h.p.x * T, y: h.p.y * T, w: D.PW * T, h: D.PH * T };
-      if (inRect(f, r) || inRect({ x: G.player.x, y: G.player.y - 3 }, r)) return { label: G.s.lvl ? 'أرض فاضية' : canBuildIn(G.map.d) ? 'ابني بيتك هون (ببلاش)' : 'هالدولة إلها رئيس', home: h, action: 'plot' };
+      if (inRect(f, r) || inRect({ x: G.player.x, y: G.player.y - 3 }, r)) return { label: G.s.lvl ? 'أرض فاضية' : canBuildIn(G.map.d) ? 'ابني بيتك هون (ببلاش)' : (G.map.d > OPEN ? 'هالدولة مسكّرة لسا' : 'هالدولة إلها رئيس'), home: h, action: 'plot' };
     }
     return null;
   }
@@ -591,6 +592,7 @@
       }
       if (!canBuildIn(p.d)) {
         const fd = firstFreeCountry();
+        if (p.d > OPEN) { UI.dialog('دولة مسكّرة', ['هالدولة لسا مسكّرة 🔒', 'الدول المفتوحة هلأ ' + OPEN + ' بس. ' + (fd ? 'في إلك دولة فاضية بتستناك!' : 'اختار وحدة منهن من الكرة 🌍')]); if (fd) setTimeout(() => UI.choice('دولتك', 'بدك روح لدولتك هلأ؟', [{ label: 'خدني لدولتي', fn: goMyCountry }, { label: 'بعدين', ghost: true }]), 10); return; }
         if (p.d === 1) { UI.dialog('دولة القصر', ['هاي دولة صاحب الحارة 👑 ما فيك تبني فيها.', fd ? 'في إلك دولة فاضية بتستناك!' : 'اختار دولة تانية من الكرة 🌍']); if (fd) setTimeout(() => UI.choice('دولتك', 'بدك روح لدولتك هلأ؟', [{ label: 'خدني لدولتي', fn: goMyCountry }, { label: 'بعدين', ghost: true }]), 10); return; }
         UI.choice('هالدولة إلها رئيس', 'لسا في دول ما إلها رئيس، فكل واحد جديد بياخد دولة لحاله ويصير رئيسها 👑\nدولتك: «' + countryOf(fd).name + '»', [
           { label: 'خدني لدولتي', fn: goMyCountry },
@@ -1261,7 +1263,7 @@
   }
   function openPassport() {
     const st = Object.keys(G.s.stamps || {}).map(Number).sort((a, b) => a - b);
-    const box = UI.modal(UI.header('book', 'جواز سفري') + '<p class="modal-sub">' + st.length + ' ختم من ' + L.Planet.count + ' دولة. كل دولة جديدة +15$</p><div class="stamps">' +
+    const box = UI.modal(UI.header('book', 'جواز سفري') + '<p class="modal-sub">' + st.length + ' ختم من ' + OPEN + ' دولة. كل دولة جديدة +15$</p><div class="stamps">' +
       st.map((d) => { const c = countryOf(d); return '<div class="stamp" style="--c:' + c.flag + '"><b>' + esc(c.name) + '</b><small>' + esc(L.Planet.BIOMES[L.Planet.biomeOf(d)].name) + '</small></div>'; }).join('') + '</div>', { cls: 'wide' });
     void box;
   }
