@@ -141,7 +141,7 @@
             method: 'POST', headers: { 'content-type': 'application/json' },
             body: JSON.stringify(Object.assign({ uid: myId, key: Net.secret() }, body, Net.ownerCode ? { owner: Net.ownerCode } : {})),
           });
-          if (r.status === 409) { const j = await r.json().catch(() => ({})); return { ok: false, reason: j.error === 'country' ? 'country' : 'taken', next: j.next }; }
+          if (r.status === 409) { const j = await r.json().catch(() => ({})); return { ok: false, reason: j.error === 'country' ? 'country' : j.error === 'name' ? 'name' : 'taken', next: j.next }; }
           if (!r.ok) return { ok: false, reason: 'server' };
           const j = await r.json().catch(() => ({}));
           return { ok: true, lvl: j.lvl };
@@ -154,6 +154,20 @@
         if (e && e.code === 'invalid_argument' && mode === 'claude') { canWrite = false; return { ok: false, reason: 'readonly' }; }
         return { ok: false, reason: 'net' };
       }
+    },
+
+    // هل الاسم فاضي؟ (أول شي من البيوت اللي عندنا، وبعدين نسأل السيرفر ليكون آخر خبر)
+    async nameFree(name) {
+      const k = String(name || '').trim().toLowerCase();
+      if (!k) return false;
+      for (const h of houses.values()) if (h.id !== myId && String(h.name).trim().toLowerCase() === k) return false;
+      if (mode === 'cloud') {
+        try {
+          const r = await fetch(window.HARA_API.replace(/\/$/, '') + '/name?n=' + encodeURIComponent(name) + '&u=' + encodeURIComponent(myId || ''));
+          if (r.ok) { const j = await r.json(); return !!j.free; }
+        } catch (e) { /* ما في نت: منكمل والسيرفر بيتأكد بعدين */ }
+      }
+      return true;
     },
 
     _debugAdd(h) { const v = validHouse(h); if (v) { houses.set(v.id, v); emit(); } },

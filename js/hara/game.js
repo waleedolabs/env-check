@@ -117,6 +117,7 @@
       if (r.reason === 'readonly') UI.toast('بيتك محفوظ عندك بس (هالرابط للمشاهدة)', 'home');
       else if (r.reason === 'taken') lostPlot();
       else if (r.reason === 'country') lostCountry();
+      else if (r.reason === 'name') askNewName();
       else if (r.reason === 'net') UI.toast('ما قدرنا نوصل للسيرفر، رح نحاول بعدين', 'phone', 'bad');
     }
   }
@@ -755,6 +756,27 @@
     _freeVer = -1; rebuildAll(); save();
     const fd = firstFreeCountry();
     UI.card({ icon: 'flag', sub: 'سبقك حدا بثواني', title: 'حدا صار رئيس ' + countryOf(d0).name, text: 'واحد تاني بنى بهالدولة قبلك بلحظة. ولا يهمك، في إلك دولة فاضية تانية' + (fd ? ': «' + countryOf(fd).name + '». ابني فيها وبتصير رئيسها 👑' : '.'), button: fd ? 'خدني لدولتي' : 'تمام', onClose: () => { if (fd) goPlaza(fd); } });
+  }
+  // حدا سبقك على نفس الاسم: لازم تغيّره عشان يتحفظ بيتك
+  function askNewName() {
+    if (G._askName) return; G._askName = true;
+    const box = UI.modal(UI.header('home', 'الاسم مأخوذ') +
+      '<p class="modal-sub">واحد تاني سبقك وسجّل «' + esc(G.s.name) + '». اختار اسم تاني لبيتك.</p>' +
+      '<div class="field"><input id="nn-in" maxlength="14" placeholder="اسمك الجديد" autocomplete="off"></div>' +
+      '<p class="modal-sub" id="nn-msg"></p><div class="row"><button class="btn" id="nn-ok">تمام</button></div>', { cls: 'small', locked: true });
+    UI._onModalClose = () => { G._askName = false; };
+    const inp = box.querySelector('#nn-in'), msg = box.querySelector('#nn-msg');
+    const go = async () => {
+      const n = L.Net.clean(inp.value, 14);
+      if (!n) { msg.textContent = 'اكتب اسم مناسب'; return; }
+      if (!(await Net.nameFree(n))) { msg.textContent = 'هالاسم مأخوذ كمان، جرب غيره'; inp.value = ''; return; }
+      G.s.name = n; save();
+      UI._modalLocked = false; UI.closeModal(); G._askName = false;
+      pushHouse();
+    };
+    box.querySelector('#nn-ok').addEventListener('click', go);
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+    setTimeout(() => inp.focus(), 50);
   }
   function lostPlot() {
     if (!G.s.plot) return;
@@ -2121,6 +2143,6 @@
     G.dirty = true; setStatus();
   }
 
-  window.__hara = { G, Net, firstFreeCountry, canBuildIn, presRace, useOwnerCode, palaceOwner, presidentOf, openBigMap, drawBigMapNow, liteOf, rebuildM: (m) => rebuild(m), goToPlot, openGlobe, openVehicles, openJobs, setRide, ACTIONS, startBuild, plotById, openResidents, openMyHouse, rebuild: () => rebuild(), give: (m) => { G.s.money += m; } };
+  window.__hara = { askNewName, G, Net, firstFreeCountry, canBuildIn, presRace, useOwnerCode, palaceOwner, presidentOf, openBigMap, drawBigMapNow, liteOf, rebuildM: (m) => rebuild(m), goToPlot, openGlobe, openVehicles, openJobs, setRide, ACTIONS, startBuild, plotById, openResidents, openMyHouse, rebuild: () => rebuild(), give: (m) => { G.s.money += m; } };
   boot();
 })(window.LIFE);

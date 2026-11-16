@@ -27,12 +27,19 @@
       $('dialog').addEventListener('pointerdown', (e) => { if (e.target.closest('button')) return; e.preventDefault(); UI.advance(); });
       $('card-btn').addEventListener('click', () => UI.closeCard());
       $('card-skip').addEventListener('click', () => { const s = UI._skip; UI._skip = null; $('card').classList.add('hidden'); cardCb = null; s && s(); });
-      $('btn-start').addEventListener('click', () => {
+      $('btn-start').addEventListener('click', async () => {
         const raw = $('name-input').value.trim();
         if (raw.startsWith('#') && h.ownerCode) { h.ownerCode(raw.slice(1)); return; } // كود صاحب القصر
         const name = L.Net.clean($('name-input').value, 14);
         if (!name) { $('name-input').value = ''; $('name-input').focus(); $('name-input').placeholder = 'اكتب اسم مناسب أولاً'; return; }
         L.Audio.unlock(); L.Audio.play('click');
+        const btn = $('btn-start');
+        if (L.Net.nameFree && !(raw.startsWith('#'))) {
+          btn.disabled = true;
+          const free = await L.Net.nameFree(name).catch(() => true);
+          btn.disabled = false;
+          if (!free) { $('name-input').value = ''; $('name-input').focus(); $('name-input').placeholder = 'هالاسم مأخوذ، اكتب اسم تاني'; L.Audio.play('bad'); return; }
+        }
         h.start(name);
       });
       $('name-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('btn-start').click(); } });
