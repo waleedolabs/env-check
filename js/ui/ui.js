@@ -54,7 +54,8 @@
         $('title-continue').classList.remove('hidden');
         $('save-info').textContent = save.name + ' · ' + (save.lvl ? 'بيت مستوى ' + save.lvl : 'لسا بلا بيت') + ' · ' + save.money + ' $';
         $('new-block').classList.add('hidden');
-        $('btn-new-toggle').classList.remove('hidden');
+        // اللي عنده بيت ما بيقدر يعمل شخصية جديدة (بيت واحد لكل شخص)
+        $('btn-new-toggle').classList.toggle('hidden', !!(save.plot || save.lvl));
       } else {
         $('title-continue').classList.add('hidden');
         $('new-block').classList.remove('hidden');
