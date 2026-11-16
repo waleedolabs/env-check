@@ -34,7 +34,7 @@
         if (!name) { $('name-input').value = ''; $('name-input').focus(); $('name-input').placeholder = 'اكتب اسم مناسب أولاً'; return; }
         L.Audio.unlock(); L.Audio.play('click');
         const btn = $('btn-start');
-        if (L.Net.nameFree && !(raw.startsWith('#'))) {
+        if (L.Net.nameFree && !(h.isOwner && h.isOwner())) { // صاحب القصر ما بيتفحّص اسمه
           btn.disabled = true;
           const free = await L.Net.nameFree(name).catch(() => true);
           btn.disabled = false;

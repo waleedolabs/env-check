@@ -164,7 +164,7 @@
     try { localStorage.setItem('hara_owner', String(code).trim()); } catch (e) { /* */ }
     Net.ownerCode = String(code).trim(); G.ownerOK = true;
     if (G.s) applyOwner();
-    else if (!quiet) { UI.toast('أهلاً يا صاحب القصر 👑 اكتب اسمك وادخل', 'home', 'good'); const ni = $('name-input'); ni.value = ''; ni.placeholder = 'اسمك يا صاحب القصر'; ni.focus(); }
+    else if (!quiet) { UI.toast('أهلاً يا صاحب القصر 👑 اضغط ادخل', 'home', 'good'); const ni = $('name-input'), po = Net.ownerOf(PAL_ID); ni.value = po ? po.name : ''; ni.placeholder = 'اسمك يا صاحب القصر'; ni.focus(); }
     return true;
   }
   function applyOwner() {
@@ -2115,6 +2115,7 @@
     UI.init({
       start: (name) => { G.tryLandscape && G.tryLandscape(); newGame(name, Object.assign({}, look)); },
       ownerCode: (c) => useOwnerCode(c),
+      isOwner: () => !!G.ownerOK,
       continueGame: () => { G.tryLandscape && G.tryLandscape(); continueGame(); },
       book: () => { if (G.state === 'play' && !UI.inDialog() && !UI.cardOpen()) openResidents(); },
       menu: () => { if (G.state === 'play' && !UI.inDialog() && !UI.cardOpen()) openMenu(); },
