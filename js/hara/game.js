@@ -1662,7 +1662,9 @@
     if (t.npc) { x = t.npc.x; y = t.npc.y - 26; }
     else if (t.home && t.home.door && t.action !== 'plot') { x = t.home.door.x + 8; y = t.home.door.y - 10; }
     else if (t.home) { x = (t.home.p.x + 3.5) * T; y = (t.home.p.y + 2) * T; }
-    else { x = t.it.rect.x + t.it.rect.w / 2; y = t.it.rect.y - 8; }
+    else if (t.litter) { x = t.litter.x; y = t.litter.y - 10; }
+    else if (t.it && t.it.rect) { x = t.it.rect.x + t.it.rect.w / 2; y = t.it.rect.y - 8; }
+    else return;
     y += Math.round(Math.sin(G.time * 6) * 1.5);
     x = Math.round(x); y = Math.round(y);
     const R = L.rect;
